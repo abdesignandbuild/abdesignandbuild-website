@@ -320,6 +320,7 @@
         <div class="brand"><img src="icons/icon-192.png" alt=""><h1>Leads</h1></div>
         <a class="icon-btn" href="#/settings" aria-label="Settings">${I.gear}</a>
       </div>
+      ${tabsHtml("leads")}
       <input id="search" class="search" type="search" placeholder="Search name, phone or project" value="${h(state.q)}" autocomplete="off">
       <div class="chips" role="toolbar" aria-label="Filter leads">${chips}</div>
       ${rows || `<div class="empty"><h2>No leads here</h2><p>${state.leads.length ? "Try another filter." : "New leads from your ads will appear here."}</p></div>`}
@@ -327,6 +328,38 @@
     const s = $("#search");
     s.addEventListener("input", () => { state.q = s.value; renderList(); });
     if (hadFocus) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
+  }
+
+  function tabsHtml(active) {
+    const tab = (key, href, label) => `<a class="tab" href="${href}" aria-current="${active === key ? "page" : "false"}">${label}</a>`;
+    return `<nav class="tabs" aria-label="Sections">${tab("leads", "#/", "Leads")}${tab("articles", "#/articles", "Articles")}</nav>`;
+  }
+
+  async function viewArticles() {
+    app.innerHTML = `
+      <div class="wrap">
+        <div class="topbar">
+          <div class="brand"><img src="icons/icon-192.png" alt=""><h1>Articles</h1></div>
+          <a class="icon-btn" href="#/settings" aria-label="Settings">${I.gear}</a>
+        </div>
+        ${tabsHtml("articles")}
+        <p class="hint" style="margin:4px 2px 12px">Published on www.abdesignandbuild.ae, newest first.</p>
+        <div id="articles"><div class="empty"><span class="spinner"></span></div></div>
+      </div>`;
+    const box = $("#articles");
+    try {
+      const items = await api.siteUpdates();
+      box.innerHTML = items.length
+        ? items.map((u) => `
+            <a class="lead-row" href="${h(/^https:\/\//.test(u.url) ? u.url : "#")}" target="_blank" rel="noopener">
+              <div class="top">
+                <div class="name">${h(u.title)}</div>
+                ${u.category ? `<span class="pill">${h(u.category)}</span>` : ""}
+              </div>
+              <div class="meta">Published ${h(new Date(u.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }))} · tap to open</div>
+            </a>`).join("")
+        : `<div class="empty"><h2>No articles yet</h2><p>New articles appear here when they go live.</p></div>`;
+    } catch (e) { box.innerHTML = `<div class="empty"><p>${h(e.message)}</p></div>`; }
   }
 
   async function viewLead(id) {
@@ -445,11 +478,6 @@
           </div>
         </div>
 
-        <div class="card settings-item">
-          <h4>Website updates</h4>
-          <p>Articles published on www.abdesignandbuild.ae, newest first.</p>
-          <div id="site-updates" class="hint" style="margin:0">Loading…</div>
-        </div>
 
         <div class="card settings-item">
           <h4>AI instructions</h4>
@@ -487,17 +515,6 @@
         </div>
       </div>`;
     try { $("#lead-key").textContent = (await api.leadKey()) || "(not available)"; } catch (e) { $("#lead-key").textContent = e.message; }
-    const feed = $("#site-updates");
-    try {
-      const items = await api.siteUpdates();
-      feed.outerHTML = items.length
-        ? `<div class="info"><dl>${items.map((u) => `
-            <div class="row">
-              <dt>${h([u.category, new Date(u.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })].filter(Boolean).join(" · "))}</dt>
-              <dd><a href="${h(/^https:\/\//.test(u.url) ? u.url : "#")}" target="_blank" rel="noopener">${h(u.title)}</a></dd>
-            </div>`).join("")}</dl></div>`
-        : `<p class="hint" style="margin:0">Nothing published yet.</p>`;
-    } catch { feed.textContent = "Switch this on by running 4-website-updates.sql in Supabase."; }
     const box = $("#ai-instructions");
     try { box.value = await api.getInstructions(); box.disabled = false; } catch (e) { box.value = ""; box.placeholder = e.message; }
   }
@@ -729,6 +746,7 @@ $$);`;
     window.scrollTo(0, 0);
     if (m) return viewLead(decodeURIComponent(m[1]));
     if (hash === "#/settings") return viewSettings();
+    if (hash === "#/articles") return viewArticles();
     state.showDone = false;
     return viewList();
   }

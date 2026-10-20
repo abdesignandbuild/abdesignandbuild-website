@@ -1,5 +1,5 @@
 // A&B Leads service worker: lets the app open offline-ish, and shows reminder notifications.
-const CACHE = "ab-crm-v2";
+const CACHE = "ab-crm-v3";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "config.js", "manifest.webmanifest", "icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {
@@ -18,8 +18,10 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
+  // "no-cache" re-checks with the server so app updates show up straight away.
+  const fresh = e.request.mode === "navigate" ? fetch(e.request) : fetch(e.request, { cache: "no-cache" });
   e.respondWith(
-    fetch(e.request)
+    fresh
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(e.request, copy));
