@@ -129,6 +129,9 @@
         const row = must(await sb.from("app_settings").select("value").eq("name", "ai_instructions").maybeSingle());
         return row?.value || "";
       },
+      async siteUpdates() {
+        return must(await sb.from("website_updates").select("title,url,category,published_at").order("published_at", { ascending: false }).limit(20));
+      },
       async saveInstructions(value) {
         must(await sb.from("app_settings").upsert({ name: "ai_instructions", value, updated_at: new Date().toISOString() }));
       },
@@ -202,6 +205,9 @@
       async savePush() {},
       async leadKey() { return "(appears here once connected)"; },
       async getInstructions() { return db.instructions || ""; },
+      async siteUpdates() {
+        return [{ title: "How much does a swimming pool cost in Dubai? (demo)", url: "https://www.abdesignandbuild.ae/journal/swimming-pool-cost-dubai.html", category: "Pools", published_at: iso(-5) }];
+      },
       async saveInstructions(value) { db.instructions = value; save(); },
       async sendTestLead() {
         await this.createLead({ full_name: "Test Lead", phone: "+971500000000", source: "Facebook", form_name: "Test form",
@@ -440,6 +446,12 @@
         </div>
 
         <div class="card settings-item">
+          <h4>Website updates</h4>
+          <p>Articles published on www.abdesignandbuild.ae, newest first.</p>
+          <div id="site-updates" class="hint" style="margin:0">Loading…</div>
+        </div>
+
+        <div class="card settings-item">
           <h4>AI instructions</h4>
           <p>Tell the AI how to write your WhatsApp replies, in your own words. It follows these every time.</p>
           <textarea id="ai-instructions" class="notes" rows="6" placeholder="${h(INSTRUCTION_EXAMPLE)}" disabled>Loading…</textarea>
@@ -475,6 +487,17 @@
         </div>
       </div>`;
     try { $("#lead-key").textContent = (await api.leadKey()) || "(not available)"; } catch (e) { $("#lead-key").textContent = e.message; }
+    const feed = $("#site-updates");
+    try {
+      const items = await api.siteUpdates();
+      feed.outerHTML = items.length
+        ? `<div class="info"><dl>${items.map((u) => `
+            <div class="row">
+              <dt>${h([u.category, new Date(u.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })].filter(Boolean).join(" · "))}</dt>
+              <dd><a href="${h(/^https:\/\//.test(u.url) ? u.url : "#")}" target="_blank" rel="noopener">${h(u.title)}</a></dd>
+            </div>`).join("")}</dl></div>`
+        : `<p class="hint" style="margin:0">Nothing published yet.</p>`;
+    } catch { feed.textContent = "Switch this on by running 4-website-updates.sql in Supabase."; }
     const box = $("#ai-instructions");
     try { box.value = await api.getInstructions(); box.disabled = false; } catch (e) { box.value = ""; box.placeholder = e.message; }
   }
@@ -717,6 +740,12 @@ $$);`;
     if ((location.hash || "#/") === "#/") viewList();
   });
 
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+    // A tapped notification asks the open app to show a page (e.g. the new lead).
+    navigator.serviceWorker.addEventListener("message", (e) => {
+      if (e.data?.type === "open" && typeof e.data.hash === "string" && e.data.hash.startsWith("#/")) location.hash = e.data.hash;
+    });
+  }
   route();
 })();
