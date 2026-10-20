@@ -1608,4 +1608,4 @@ p { margin: 0 0 1em; text-wrap: pretty; }
 .journal-guides { padding-block: var(--space-5) var(--space-7); }
 .journal-guides h2 { font-size: clamp(2rem, 1.5rem + 2vw, 3rem); margin-bottom: var(--space-4); }
 @media (min-width: 900px) { .journal-guides .articles { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1200px) { .journal-guides .articles { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1200px) { .journal-guides .articles { grid-template-columns: repeat(3, 1fr); } }
