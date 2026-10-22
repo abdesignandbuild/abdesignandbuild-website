@@ -1077,6 +1077,9 @@ p { margin: 0 0 1em; text-wrap: pretty; }
   color: var(--ivory-soft);
 }
 .footer-base p { margin: 0; }
+.footer-base { flex-direction: column; justify-content: flex-start; gap: var(--space-1); }
+.footer-base a { text-decoration: underline; text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+.footer-base a:hover { color: var(--ivory); }
 @media (min-width: 800px) { .footer-grid { grid-template-columns: 1.4fr 1fr 1fr 1fr; } }
 
 /* ---------- Floating WhatsApp ---------- */
